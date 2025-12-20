@@ -27,3 +27,7 @@ Work; shows as a normal window 工作时，以普通窗口显示：
 Relax; shows in fullscreen 休息时，全屏显示：
 ![Relax 休息时](screenshots/Relax.png "Relax 休息时")
 
+# Dependencies
+
+- python3-screeninfo
+- python3-pystray
