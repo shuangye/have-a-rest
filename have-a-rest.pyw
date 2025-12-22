@@ -13,7 +13,6 @@ THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR I
 
 import sys
 import webbrowser
-import platform
 from datetime import datetime
 from tkinter import *
 from PIL import Image, ImageDraw, ImageTk
@@ -65,9 +64,11 @@ class Application(Frame):
         self.currentTimeLabel.pack()
         self.bottomFrame = Frame(master = self.master)
         self.bottomFrame.pack(expand = True, fill = X, anchor = S, side = BOTTOM)
-        self.actionButton = Button(self.bottomFrame, font = (gc_FONT, 20), command = lambda: self.switchMode(gc_MODE_RELAX), borderwidth = 0, padx = 10, pady = 10)
+        self.actionButton = Button(self.bottomFrame, font = (gc_FONT, 20), command = lambda: self.switchMode(gc_MODE_RELAX),
+                                   bd=0, highlightthickness=0, pady=10, padx=10)
         self.actionButton.pack(side = RIGHT, anchor = SE)
-        self.minimizeButton = Button(self.bottomFrame, font = (gc_FONT, 20), text = 'Minimize to Tray', command = enable_and_hide_to_tray, borderwidth = 0, padx = 10, pady = 10)
+        self.minimizeButton = Button(self.bottomFrame, font = (gc_FONT, 20), text = 'Minimize to Tray', command = enable_and_hide_to_tray,
+                                     bd=0, highlightthickness=0, pady=10, padx=10)
         self.minimizeButton.pack(side = RIGHT, anchor = SE, padx = 10)
         self.linkLabel = Label(self.bottomFrame, font = (gc_FONT, 12), text = gc_REPO_URL, cursor="hand2")
         self.linkLabel.pack(side = LEFT, anchor = SW)
@@ -176,6 +177,15 @@ class Application(Frame):
             except:
                 pass
 
+def maximizeWindow(win):
+    import platform
+    system = platform.system()
+    if system == 'Linux':
+        win.attributes('-zoomed', True)
+    else:
+        win.state('zoomed')
+
+
 def toggleFullscreen(full):
     for win in g_windows:
         win.attributes('-fullscreen', full)
@@ -232,8 +242,8 @@ def create_tray_icon():
     draw_eye_icon(draw, scale=1.25)
     return image
 
-# Create taskbar icon with screen number overlay
-def create_taskbar_icon(screen_id):
+# Create taskbar icon with window number overlay
+def create_taskbar_icon(window_id):
     width = 64
     height = width
     image = Image.new('RGBA', (width, height), (0, 0, 0, 0))
@@ -249,8 +259,8 @@ def create_taskbar_icon(screen_id):
                   circle_x + circle_radius, circle_y + circle_radius],
                  fill=gc_DEFAULT_BG_COLOR, width=2)
 
-    # Draw the screen number
-    text = str(screen_id)
+    # Draw the window number
+    text = str(window_id)
     try:
         from PIL import ImageFont
         font = ImageFont.load_default(20)
@@ -270,7 +280,6 @@ def create_taskbar_icon(screen_id):
     return image
 
 def show_windows():
-    """Show all windows"""
     for win in g_windows:
         win.deiconify()
         win.lift()
@@ -292,7 +301,6 @@ def on_tray_rest_now():
         g_root.after(0, lambda: g_primary_app.switchMode(gc_MODE_RELAX))
 
 def on_tray_quit():
-    """Quit application from tray"""
     if g_tray_icon:
         g_tray_icon.stop()
     g_root.quit()
@@ -379,9 +387,6 @@ def main():
         win_y = y + (height - win_height) // 2
         win.geometry(f"{win_width}x{win_height}+{win_x}+{win_y}")
 
-        # Maximize window on startup
-        win.attributes('-zoomed', True)  # For Linux
-
         try:
             icon_image = create_taskbar_icon(i + 1)
             icon_photo = ImageTk.PhotoImage(icon_image)     # Convert PIL Image to PhotoImage for Tkinter
@@ -390,6 +395,7 @@ def main():
         except Exception as e:
             print(f"  Warning: Could not set window icon: {e}")
 
+        maximizeWindow(win)
         win.configure(bg = gc_DEFAULT_BG_COLOR)
         g_windows.append(win)
 
