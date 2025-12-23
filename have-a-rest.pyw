@@ -5,7 +5,6 @@ This program reminds you to relax after working for a certain period.
 """
 
 """
-https://github.com/shuangye/relax_eyes
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
@@ -106,12 +105,12 @@ class Application(Frame):
             if self.remaining == 0: self.switchMode(gc_MODE_RELAX)
             elif self.remaining == g_notifyDurationBeforeRelax:
                 self.updateAllWindows('notify')
-                self.bringUpWindow(True)
+                self.bringUpWindows(True)
         self.updateAllWindows('time')
         self.lapsed += gc_TIMER_RESOLUTION
         self.after(gc_TIMER_RESOLUTION * 1000, self.timeMeas)
 
-    def bringUpWindow(self, temporary):
+    def bringUpWindows(self, temporary):
         for win in g_windows:
             win.update()
             win.deiconify()
@@ -122,25 +121,38 @@ class Application(Frame):
                 win.update()
                 win.attributes('-topmost', False)
 
+    def configureUIColor(self, widget, bg, fg):
+        try:
+            widget.configure(bg = bg, fg = fg)
+        except:
+            # Some widgets may not support bg/fg (e.g., some ttk widgets)
+            try: widget.configure(bg = bg)
+            except: pass
+
+        for child in widget.winfo_children():
+            self.configureUIColor(child, bg, fg)
+
     def configureUI(self):
-        if self.mode == gc_MODE_RELAX: bgColor = gc_RELAX_BG_COLOR; fgColor = gc_RELAX_FG_COLOR; statusLebel = 'Time To Work';
-        else: bgColor = gc_DEFAULT_BG_COLOR; fgColor = gc_DEFAULT_FG_COLOR; statusLebel = 'Time To Rest';
-        self.master.configure(bg = bgColor)
-        self.configure(bg = bgColor)
-        self.bottomFrame.configure(bg = bgColor)
-        self.statusLabel.configure(bg = bgColor, fg = fgColor, text = statusLebel)
-        self.countdownLabel.configure(bg = bgColor, fg = fgColor)
-        self.currentTimeLabel.configure(bg = bgColor, fg = fgColor)
-        self.linkLabel.configure(bg = bgColor, fg = fgColor)
-        self.minimizeButton.configure(bg = bgColor, fg = fgColor)
         if self.mode == gc_MODE_RELAX:
-            self.actionButton.configure(bg = bgColor, fg = fgColor, text = 'Work Now', command = lambda: self.switchMode(gc_MODE_WORK))
-            toggleFullscreen(True)
-            self.bringUpWindow(False)
+            bgColor = gc_RELAX_BG_COLOR
+            fgColor = gc_RELAX_FG_COLOR
+            statusLebel = 'Time To Work'
+            actionText = 'Work Now'
+            actionCommand = lambda: self.switchMode(gc_MODE_WORK)
         else:
-            self.actionButton.configure(bg = bgColor, fg = fgColor, text = 'Rest Now', command = lambda: self.switchMode(gc_MODE_RELAX))
-            toggleFullscreen(False)
-            self.bringUpWindow(True)
+            bgColor = gc_DEFAULT_BG_COLOR
+            fgColor = gc_DEFAULT_FG_COLOR
+            statusLebel = 'Time To Rest'
+            actionText = 'Rest Now'
+            actionCommand = lambda: self.switchMode(gc_MODE_RELAX)
+
+        self.configureUIColor(self.master, bgColor, fgColor)
+        self.statusLabel.configure(text = statusLebel)
+        self.actionButton.configure(text = actionText, command = actionCommand)
+
+        fullscreen = self.mode == gc_MODE_RELAX
+        toggleFullscreen(fullscreen)
+        self.bringUpWindows(not fullscreen)
 
     def updateUI(self):
         self.countdownText.set("{0:02}:{1:02}".format(self.remaining // 60, self.remaining % 60))
