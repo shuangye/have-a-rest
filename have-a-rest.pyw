@@ -187,8 +187,52 @@ def maximizeWindow(win):
 
 
 def toggleFullscreen(full):
-    for win in g_windows:
-        win.attributes('-fullscreen', full)
+    import platform
+    system = platform.system()
+
+    if system == 'Windows':
+        # On Windows, manually control window geometry for fullscreen
+        # to ensure each window stays on its designated monitor
+        for win in g_windows:
+            if full:
+                # Entering fullscreen
+                if hasattr(win, '_monitor_geometry'):
+                    x, y, width, height = win._monitor_geometry
+                    # Remove window decorations
+                    win.overrideredirect(True)
+                    # Set window to cover entire monitor
+                    win.geometry(f"{width}x{height}+{x}+{y}")
+                    win.attributes('-topmost', True)
+                    win.update()
+            else:
+                # Exiting fullscreen
+                win.attributes('-topmost', False)
+                win.overrideredirect(False)
+                win.update_idletasks()
+
+                if hasattr(win, '_monitor_geometry'):
+                    # Move window to target monitor and maximize
+                    x, y, width, height = win._monitor_geometry
+                    win.state('normal')
+                    # Position window on the correct monitor
+                    win.geometry(f"400x300+{x+100}+{y+100}")
+                    win.update()
+                    # Maximize on that monitor
+                    win.state('zoomed')
+    else:
+        # For Linux and macOS, use the standard fullscreen attribute
+        for win in g_windows:
+            win.attributes('-fullscreen', full)
+            if not full and hasattr(win, '_monitor_geometry'):
+                # Restore window position on exit
+                x, y, width, height = win._monitor_geometry
+                win_width = width // 3 * 2
+                win_height = height // 3 * 2
+                win_x = x + (width - win_width) // 2
+                win_y = y + (height - win_height) // 2
+                win.geometry(f"{win_width}x{win_height}+{win_x}+{win_y}")
+                win.update()
+                maximizeWindow(win)
 
 def draw_eye_icon(draw, scale=1.0, offset_x=0, offset_y=0):
     """Draw an eye icon on the given draw object
@@ -379,6 +423,9 @@ def main():
 
         win.title(f'Have A Rest - Screen {i+1}')
         win.resizable(True, True)
+
+        # Save monitor geometry for this window (for fullscreen restoration)
+        win._monitor_geometry = (x, y, width, height)
 
         # Position window on specific monitor
         win_width = width // 3 * 2

@@ -8,9 +8,9 @@ This program reminds you to have a rest after working for a certain period.
 
 # Install 安装
 
-1. Install [Python](https://www.python.org/downloads/) if you do not have it yet.
-2. Clone or download this repo.
-3. Install dependencies `pip install -r requirements.txt`
+1. Install [Python](https://www.python.org/downloads/) if you do not have it yet. 安装 [Python](https://www.python.org/downloads/).
+2. Clone or download this repo. 克隆或下载此仓库。
+3. Install dependencies `pip install -r requirements.txt` 执行 `pip install -r requirements.txt` 安装依赖。
 
 # Run 运行
 
