@@ -5,9 +5,9 @@ This program reminds you to relax after working for a certain period.
 """
 
 """
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 """
 
 import sys
@@ -51,28 +51,86 @@ class Application(Frame):
         self.pack(expand = True, fill = 'both')
         self.place(in_ = master, anchor = CENTER, relx = .5, rely = .5)
         self.createWidgets()
+
+        # Bind window resize event to update font sizes
+        self.master.bind('<Configure>', self.on_window_resize)
+
         if self.is_primary:
             self.timeMeas()
 
     def createWidgets(self):
-        self.statusLabel = Label(self, font = (gc_FONT, 60), pady = 20)
+        # Create widgets without initial sizes/paddings (will be set dynamically on startup)
+        self.statusLabel = Label(self)
         self.statusLabel.pack()
-        self.countdownLabel = Label(self, font = (gc_FONT, 200), textvariable = self.countdownText, pady = 30)
+        self.countdownLabel = Label(self, textvariable = self.countdownText)
         self.countdownLabel.pack()
-        self.currentTimeLabel = Label(self, font = (gc_FONT, 70), textvariable = self.currentTime, pady = 30)
+        self.currentTimeLabel = Label(self, textvariable = self.currentTime)
         self.currentTimeLabel.pack()
         self.bottomFrame = Frame(master = self.master)
         self.bottomFrame.pack(expand = True, fill = X, anchor = S, side = BOTTOM)
-        self.actionButton = Button(self.bottomFrame, font = (gc_FONT, 20), command = lambda: self.switchMode(gc_MODE_RELAX),
-                                   bd=0, highlightthickness=0, pady=10, padx=10)
+        self.actionButton = Button(self.bottomFrame, command = lambda: self.switchMode(gc_MODE_RELAX),
+                                   bd=0, highlightthickness=0)
         self.actionButton.pack(side = RIGHT, anchor = SE)
-        self.minimizeButton = Button(self.bottomFrame, font = (gc_FONT, 20), text = 'Minimize to Tray', command = enable_and_hide_to_tray,
-                                     bd=0, highlightthickness=0, pady=10, padx=10)
-        self.minimizeButton.pack(side = RIGHT, anchor = SE, padx = 10)
-        self.linkLabel = Label(self.bottomFrame, font = (gc_FONT, 12), text = gc_REPO_URL, cursor="hand2")
+        self.minimizeButton = Button(self.bottomFrame, text = 'Minimize to Tray', command = enable_and_hide_to_tray,
+                                     bd=0, highlightthickness=0)
+        self.minimizeButton.pack(side = RIGHT, anchor = SE)
+        self.linkLabel = Label(self.bottomFrame, text = gc_REPO_URL, cursor="hand2")
         self.linkLabel.pack(side = LEFT, anchor = SW)
         self.linkLabel.bind("<Button-1>", lambda e: webbrowser.open_new(gc_REPO_URL))
         self.configureUI()
+
+    def calculate_font_sizes(self, window_height):
+        """Calculate font sizes and paddings based on window height (as percentage)"""
+        # Base font sizes on window height
+        # Countdown label is the largest (about 21% of height for 200px at 960px height)
+        countdown_size = max(20, int(window_height * 0.21))
+        status_size = max(12, int(window_height * 0.063))      # 60/960 ≈ 0.063
+        time_size = max(14, int(window_height * 0.073))        # 70/960 ≈ 0.073
+        button_size = max(10, int(window_height * 0.021))      # 20/960 ≈ 0.021
+        link_size = max(8, int(window_height * 0.0125))        # 12/960 ≈ 0.0125
+
+        # Calculate paddings based on window height
+        # Original values: status pady=20, countdown pady=30, time pady=30, button pady=10 padx=10
+        status_pady = max(5, int(window_height * 0.021))       # 20/960 ≈ 0.021
+        countdown_pady = max(8, int(window_height * 0.031))    # 30/960 ≈ 0.031
+        time_pady = max(8, int(window_height * 0.031))         # 30/960 ≈ 0.031
+        button_pad = max(3, int(window_height * 0.010))        # 10/960 ≈ 0.010
+
+        return {
+            'countdown': countdown_size,
+            'status': status_size,
+            'time': time_size,
+            'button': button_size,
+            'link': link_size,
+            'status_pady': status_pady,
+            'countdown_pady': countdown_pady,
+            'time_pady': time_pady,
+            'button_pad': button_pad
+        }
+
+    def update_font_sizes(self):
+        """Update all widget font sizes and paddings based on current window size"""
+        window_height = self.master.winfo_height()
+        if window_height <= 1:  # Window not yet fully initialized
+            return
+
+        sizes = self.calculate_font_sizes(window_height)
+
+        # Update font sizes
+        self.statusLabel.configure(font = (gc_FONT, sizes['status']), pady = sizes['status_pady'])
+        self.countdownLabel.configure(font = (gc_FONT, sizes['countdown']), pady = sizes['countdown_pady'])
+        self.currentTimeLabel.configure(font = (gc_FONT, sizes['time']), pady = sizes['time_pady'])
+        self.actionButton.configure(font = (gc_FONT, sizes['button']),
+                                    pady = sizes['button_pad'], padx = sizes['button_pad'])
+        self.minimizeButton.configure(font = (gc_FONT, sizes['button']),
+                                      pady = sizes['button_pad'], padx = sizes['button_pad'])
+        self.linkLabel.configure(font = (gc_FONT, sizes['link']))
+
+    def on_window_resize(self, event):
+        """Handle window resize event"""
+        # Only update if the resize event is for the master window
+        if event.widget == self.master:
+            self.update_font_sizes()
 
     def timeMeas(self):
         if (self.mode == gc_MODE_RELAX):
@@ -380,6 +438,7 @@ def setup_tray_icon():
         menu,
         on_click=lambda icon, item: show_windows()
     )
+
     # Run tray icon in a separate thread
     tray_thread = threading.Thread(target=g_tray_icon.run, daemon=True)
     tray_thread.start()
@@ -456,9 +515,11 @@ def main():
 
         maximizeWindow(win)
         win.configure(bg = gc_DEFAULT_BG_COLOR)
+        win.update()  # Force window geometry update after maximize
         g_windows.append(win)
 
         app = Application(master = win, is_primary = is_primary)
+        app.update_font_sizes()  # Update font sizes based on actual window size
         if is_primary:
             g_primary_app = app
 
