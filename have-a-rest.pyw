@@ -397,6 +397,8 @@ def show_windows():
     for win in g_windows:
         win.deiconify()
         win.lift()
+        win.focus_force()
+        maximizeWindow(win)
 
 def hide_windows():
     """Hide all windows to tray"""
@@ -424,13 +426,12 @@ def setup_tray_icon():
     global g_tray_icon
 
     menu = pystray.Menu(
-        pystray.MenuItem('Show', show_windows),
+        pystray.MenuItem('Show', show_windows, default=True),
         pystray.MenuItem('Hide', hide_windows),
         pystray.MenuItem('Rest Now', on_tray_rest_now),
         pystray.MenuItem('Quit', on_tray_quit)
     )
 
-    # Left click shows windows, right click shows menu
     g_tray_icon = pystray.Icon(
         'have_a_rest',
         create_tray_icon(),
